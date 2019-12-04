@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1575488875857.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1936025413",
+    "id" : "C4BCA738",
+    "lastKnownWriteTime" : 1575488917,
+    "last_content_update" : 1575488917748,
+    "path" : "C:/Users/Preet/Desktop/SDS 348/Website2/content/post/2019-12-04-first-blog-post.Rmd",
+    "project_path" : "content/post/2019-12-04-first-blog-post.Rmd",
+    "properties" : {
+        "cursorPosition" : "15,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
