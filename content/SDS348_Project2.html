@@ -1,0 +1,430 @@
+---
+title: "SDS348 Project 2"
+author: "SDS348 Fall 2019"
+date: "November 23, 2019"
+output: html_document
+---
+
+
+
+<div id="r-markdown" class="section level2">
+<h2>R Markdown</h2>
+<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
+<p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+<pre class="r"><code>#Class diags function
+
+class_diag&lt;-function(probs,truth){
+  
+  tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord&lt;-order(probs, decreasing=TRUE)
+  probs &lt;- probs[ord]; truth &lt;- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup&lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+  TPR&lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1)
+  
+  n &lt;- length(TPR)
+  auc&lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}</code></pre>
+<p>#####Introduction:
+#####The dataset that I have chosen is from the University of California Irvine repository and is used to predict heart disease.There are 270 patients and 10 variables. The main variables that I will be focusing are chest pain, systolic blood pressure (mmHg), cholesterol (mg/dL), max heart rate (beats/min), exercise angina, ST depression (mm), and heart disease. The chest pain variable has 4 groups: typical angina, atypical angina, non-anginal pain, and asymptomatic. The ST depression variable is a measures the depression induced by exercise relative to rest. ST depression in general is a measure of how far below the baseline the ST segment of a electrocardiogram is. Lastly, the heart disease variable indicates whether each patient does or doesn’t have heart disease.</p>
+<pre class="r"><code>hrtdis &lt;- read.csv(&quot;C:/Users/Preet/Desktop/SDS 348/SDS 348 HW/Heart_Disease_Prediction.csv&quot;)
+
+#MANOVA across sex
+man1&lt;-manova(cbind(BP, Cholesterol, Max_HR, ST_depression)~Chest_pain, data=hrtdis)
+summary(man1)</code></pre>
+<pre><code>##             Df  Pillai approx F num Df den Df    Pr(&gt;F)    
+## Chest_pain   3 0.22401   5.3462     12    795 9.395e-09 ***
+## Residuals  266                                             
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>#Univariate ANOVA
+summary.aov(man1)</code></pre>
+<pre><code>##  Response BP :
+##              Df Sum Sq Mean Sq F value  Pr(&gt;F)  
+## Chest_pain    3   2673  891.15  2.8509 0.03785 *
+## Residuals   266  83148  312.58                  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response Cholesterol :
+##              Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Chest_pain    3   7385  2461.5  0.9206 0.4313
+## Residuals   266 711240  2673.8               
+## 
+##  Response Max_HR :
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## Chest_pain    3  18797  6265.8  13.274 4.22e-08 ***
+## Residuals   266 125562   472.0                     
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response ST_depression :
+##              Df  Sum Sq Mean Sq F value    Pr(&gt;F)    
+## Chest_pain    3  37.384 12.4612  10.509 1.484e-06 ***
+## Residuals   266 315.411  1.1858                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>#Post-hoc t tests
+pairwise.t.test(hrtdis$BP,hrtdis$Chest_pain, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  hrtdis$BP and hrtdis$Chest_pain 
+## 
+##                  asymptomatic atypical angina non-anginal pain
+## atypical angina  0.2479       -               -               
+## non-anginal pain 0.3546       0.7016          -               
+## typical angina   0.0278       0.0071          0.0084          
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(hrtdis$Max_HR,hrtdis$Chest_pain, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  hrtdis$Max_HR and hrtdis$Chest_pain 
+## 
+##                  asymptomatic atypical angina non-anginal pain
+## atypical angina  2.8e-07      -               -               
+## non-anginal pain 7.5e-06      0.1383          -               
+## typical angina   0.0029       0.4318          0.7800          
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(hrtdis$ST_depression,hrtdis$Chest_pain, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  hrtdis$ST_depression and hrtdis$Chest_pain 
+## 
+##                  asymptomatic atypical angina non-anginal pain
+## atypical angina  6e-07        -               -               
+## non-anginal pain 0.00342      0.01133         -               
+## typical angina   0.58759      0.00016         0.02815         
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>#At least one type 1 error
+1-(1-.05)^23</code></pre>
+<pre><code>## [1] 0.6926431</code></pre>
+<pre class="r"><code>#Bonferroni correction
+0.05/23</code></pre>
+<pre><code>## [1] 0.002173913</code></pre>
+<pre class="r"><code>#Assumptions
+hrtdis4 &lt;- hrtdis%&gt;%select(Chest_pain, BP, Cholesterol, Max_HR, ST_depression)
+
+ggplot(hrtdis4, aes(x = BP, y = Cholesterol)) +
+ geom_point(alpha = .5) + geom_density_2d(h=2) + coord_fixed() + facet_wrap(~Chest_pain)</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<pre class="r"><code>covmats&lt;-hrtdis4%&gt;%group_by(Chest_pain)%&gt;%do(covs=cov(.[2:5]))
+for(i in 1:5){print(covmats$covs[i])}</code></pre>
+<pre><code>## [[1]]
+##                       BP Cholesterol    Max_HR ST_depression
+## BP            334.497578  205.062984  -5.82328      5.988772
+## Cholesterol   205.062984 2496.378028  50.24122      1.841152
+## Max_HR         -5.823280   50.241219 554.80281    -11.360356
+## ST_depression   5.988772    1.841152 -11.36036      1.607496
+## 
+## [[1]]
+##                        BP Cholesterol       Max_HR ST_depression
+## BP            278.5882695  159.279326   20.3896632    -0.6175377
+## Cholesterol   159.2793264 1703.368757 -109.4558653     1.6450639
+## Max_HR         20.3896632 -109.455865  404.5464576    -0.9262485
+## ST_depression  -0.6175377    1.645064   -0.9262485     0.2702207
+## 
+## [[1]]
+##                       BP Cholesterol     Max_HR ST_depression
+## BP            286.326842   30.265498  -9.432165     3.3858001
+## Cholesterol    30.265498 3827.238559  38.992210    -1.1557611
+## Max_HR         -9.432165   38.992210 371.546251    -3.1852645
+## ST_depression   3.385800   -1.155761  -3.185265     0.9101396
+## 
+## [[1]]
+##                          BP Cholesterol      Max_HR ST_depression
+## BP             346.11578947   471.96316 -115.810526   -0.03789474
+## Cholesterol    471.96315789  1228.47105  -55.584211    1.53000000
+## Max_HR        -115.81052632   -55.58421  472.621053   -3.70842105
+## ST_depression   -0.03789474     1.53000   -3.708421    1.45168421
+## 
+## [[1]]
+## NULL</code></pre>
+<p>Performed 1 MANOVA, 4 ANOVAs, and 18 t tests, for a total of 23 tests total. The probability of at least one type 1 error (if unadjusted) is 0.693. With the Bonferroni correction, a significance level of 0.0022 should be used.
+According to the post hoc t tests there is a significant difference in maximum heart rate between atypical angina and asymptomatic chest pain groups as well as between non-anginal pain and asymptomatic groups. There is also a significant difference in ST depression between atypical angina and asymptomatic chest pain groups as well as between typical angina and atypical angina groups.
+after adjusting for multiple comparisons (bonferroni).
+Most of the assumptions are probably not met as can be seen in the multivariate normality and covariances because there are a lot of assumptions that are very restrictive.</p>
+<pre class="r"><code>#PERMANOVA (randimization-test MANOVA)
+dists&lt;-hrtdis%&gt;%select(BP, Cholesterol, Max_HR, ST_depression)%&gt;%dist()
+
+SST&lt;- sum(dists^2)/270
+SSW&lt;-hrtdis%&gt;%group_by(Chest_pain)%&gt;%select(BP, Cholesterol, Max_HR, ST_depression)%&gt;%do(d=dist(.[2:5],&quot;euclidean&quot;))%&gt;%ungroup%&gt;%summarize(sum(d[[1]]^2)/129 + sum(d[[2]]^2)/42 + sum(d[[3]]^2)/79 +sum(d[[4]]^2)/20)%&gt;%pull
+F_obs&lt;-((SST-SSW)/3)/(SSW/266)
+
+Fs&lt;-replicate(1000,{
+new&lt;-hrtdis%&gt;%mutate(Chest_pain=sample(Chest_pain))
+SSW&lt;-new%&gt;%group_by(Chest_pain)%&gt;%select(BP, Cholesterol, Max_HR, ST_depression)%&gt;%do(d=dist(.[2:5],&quot;euclidean&quot;))%&gt;%ungroup%&gt;%summarize(sum(d[[1]]^2)/129 + sum(d[[2]]^2)/42 + sum(d[[3]]^2)/79 +sum(d[[4]]^2)/20)%&gt;%pull
+((SST-SSW)/3)/(SSW/266)
+})
+
+#Plot of null distribution and the test statistic
+
+{hist(Fs,prob = T); abline(v=F_obs, col=&quot;red&quot;, add=T)}</code></pre>
+<pre><code>## Warning in int_abline(a = a, b = b, h = h, v = v, untf = untf, ...): &quot;add&quot; is
+## not a graphical parameter</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>#p-value
+mean(Fs&gt;F_obs)</code></pre>
+<pre><code>## [1] 0.017</code></pre>
+<p>Null hypothesis: The centroids and dispersion of the groups as defined by measure space are equivalent for BP, cholesterol, max HR, and ST depression.
+Alternative hypothesis: The centroid and/or the spread of the objects is different between the groups BP, cholesterol, max HR, or ST depression.
+Results: The p-value is less than the alpha level (0.05), meaning that we reject the null hypothesis. There are differences in the composition and/or relative abundances of different types of chest pain in samples from BP, cholesterol, max HR, or ST depression.</p>
+<pre class="r"><code>#Mean centering and dummy coding variables
+hrtdis1&lt;-hrtdis%&gt;%mutate(hrtdisease=ifelse(HeartDisease==&quot;Presence&quot;,1,0))
+hrtdis1&lt;-hrtdis1%&gt;%mutate(ExerciseAngina=ifelse(Exercise_angina==1,&quot;Yes&quot;,&quot;No&quot;))
+hrtdis1 &lt;- hrtdis1%&gt;%mutate(BP_c = BP - mean(BP, na.rm = T))
+hrtdis1 &lt;- hrtdis1%&gt;%mutate(Cholesterol_c = Cholesterol - mean(Cholesterol, na.rm = T))
+hrtdis1 &lt;- hrtdis1%&gt;%mutate(Max_HR_c = Max_HR - mean(Max_HR, na.rm = T))
+hrtdis1 &lt;- hrtdis1%&gt;%mutate(ST_depression_c = ST_depression - mean(ST_depression, na.rm = T))</code></pre>
+<pre class="r"><code>#Linear regression model
+linfit &lt;- lm(ST_depression~BP_c*hrtdisease, data = hrtdis1)
+summary(linfit)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = ST_depression ~ BP_c * hrtdisease, data = hrtdis1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.2188 -0.6336 -0.2568  0.6722  4.3340 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)     0.646621   0.085041   7.604 4.96e-13 ***
+## BP_c            0.009667   0.005126   1.886   0.0604 .  
+## hrtdisease      0.903396   0.127689   7.075 1.32e-11 ***
+## BP_c:hrtdisease 0.001359   0.007122   0.191   0.8489    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.03 on 266 degrees of freedom
+## Multiple R-squared:  0.2003, Adjusted R-squared:  0.1913 
+## F-statistic: 22.21 on 3 and 266 DF,  p-value: 7.231e-13</code></pre>
+<pre class="r"><code>#Plot of the regression
+ggplot(hrtdis1, aes(x = BP_c, y = ST_depression, group = HeartDisease)) + 
+  geom_point(aes(color=HeartDisease)) +
+  geom_smooth(method=&quot;lm&quot;, se=F,fullrange=T,aes(color=HeartDisease))+
+theme(legend.position=c(.12,.82), legend.title = element_text(size=9), legend.text = element_text(size=8))</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#Checking assumptions
+resids&lt;-linfit$residuals
+fitvals&lt;-linfit$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color=&#39;red&#39;)</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<pre class="r"><code>ggplot()+geom_histogram(aes(resids), bins=30)</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-6-3.png" width="672" /></p>
+<pre class="r"><code>ggplot()+geom_qq(aes(sample=resids))+geom_qq_line(aes(sample=resids, color=&#39;red&#39;)) + theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-6-4.png" width="672" /></p>
+<pre class="r"><code>#Normal-theory standard errors
+coeftest(linfit)</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##                  Estimate Std. Error t value  Pr(&gt;|t|)    
+## (Intercept)     0.6466205  0.0850407  7.6037 4.962e-13 ***
+## BP_c            0.0096675  0.0051264  1.8858   0.06041 .  
+## hrtdisease      0.9033959  0.1276894  7.0749 1.324e-11 ***
+## BP_c:hrtdisease 0.0013586  0.0071219  0.1908   0.84886    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>#Robust standard errors
+coeftest(linfit, vcov = vcovHC(linfit))</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##                  Estimate Std. Error t value  Pr(&gt;|t|)    
+## (Intercept)     0.6466205  0.0702896  9.1994 &lt; 2.2e-16 ***
+## BP_c            0.0096675  0.0055808  1.7323   0.08438 .  
+## hrtdisease      0.9033959  0.1317573  6.8565 4.917e-11 ***
+## BP_c:hrtdisease 0.0013586  0.0092191  0.1474   0.88295    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>#Regression without interactions and likelihood ratio test
+linfit2 &lt;- lm(ST_depression~BP_c+hrtdisease, data = hrtdis1)
+summary(linfit2)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = ST_depression ~ BP_c + hrtdisease, data = hrtdis1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.1811 -0.6344 -0.2477  0.6675  4.3508 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept) 0.648365   0.084395   7.682 2.97e-13 ***
+## BP_c        0.010371   0.003552   2.920   0.0038 ** 
+## hrtdisease  0.903680   0.127450   7.090 1.20e-11 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.028 on 267 degrees of freedom
+## Multiple R-squared:  0.2002, Adjusted R-squared:  0.1942 
+## F-statistic: 33.42 on 2 and 267 DF,  p-value: 1.111e-13</code></pre>
+<pre class="r"><code>lrtest(linfit, linfit2)</code></pre>
+<pre><code>## Likelihood ratio test
+## 
+## Model 1: ST_depression ~ BP_c * hrtdisease
+## Model 2: ST_depression ~ BP_c + hrtdisease
+##   #Df  LogLik Df  Chisq Pr(&gt;Chisq)
+## 1   5 -389.04                     
+## 2   4 -389.06 -1 0.0369     0.8476</code></pre>
+<p>Interpret coefficients:
+For patients with average systolic BP, ST depression is 0.647 mm in the absence of heart disease. Controlling for heart disease status, for evry 1 mmHg increase in systolic BP, ST depression increases by 0.001 mm on average. Controlling for systolic BP, there is a 0.903 mm difference in ST depression between patients with and without heart disease. There is not a significant interaction between systolic BP and heart disease status.<br />
+The significance of the results stayed the same even after recomputing with the robust SEs. There wasn’t a big difference between any of the original SEs and the the robust SEs which makes sense as to why the significance of the results didn’t change. One of the changes in p-value from the original to the robust SEs is for the blood pressure. Since the SE increased from the original to the robust SE, the t-value decreased and as a result the p-value increased for blood pressure. This can be seen with the variables as well. And when SEs decreases, t value increases, and p value decreases.
+My model explains 19.13% (using the adjusted R^2 value) of the variation in the outcome.</p>
+<pre class="r"><code>#Bootstrapped standard errors
+
+samp_distn&lt;-replicate(5000, {
+ boot_dat&lt;-boot_dat&lt;-hrtdis1[sample(nrow(hrtdis1),replace=TRUE),]
+ bootfit&lt;-lm(ST_depression~BP_c*hrtdisease, data = boot_dat)
+ coef(bootfit)
+})
+
+samp_distn%&gt;%t%&gt;%as.data.frame%&gt;%summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)        BP_c hrtdisease BP_c:hrtdisease
+## 1  0.06829971 0.005259716  0.1300423     0.008874757</code></pre>
+<p>As SE increases, the t-value decreases and the p-value increases, and vice versa. The bootstrapped SE for the intercept is less than both the original and robost SE values which means that the t-value for it is greater and as a result the p-value is smaller for the intercept. The bootstrapped SEs for BP_c, hrtdisease, and BP_c:hrtdisease are greater than the original SEs, but less than the robust SEs. Which means that compared to the t and p values of the original SEs, the bootstrapped t values will be less and the p values will be bigger. Compared to the robust SEs’ t and p values, the bootstrapped t values will be greater and the p values will be lesser.</p>
+<pre class="r"><code>#Logistic regression
+logfit&lt;-glm(hrtdisease~Exercise_angina+ST_depression+BP, data=hrtdis1, family=&quot;binomial&quot;)
+coeftest(logfit)</code></pre>
+<pre><code>## 
+## z test of coefficients:
+## 
+##                   Estimate Std. Error z value  Pr(&gt;|z|)    
+## (Intercept)     -2.8478162  1.1328938 -2.5138   0.01195 *  
+## Exercise_angina  1.6588944  0.3114246  5.3268 9.996e-08 ***
+## ST_depression    0.7671622  0.1525539  5.0288 4.936e-07 ***
+## BP               0.0097902  0.0085452  1.1457   0.25192    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>exp(coef(logfit))%&gt;%data.frame()</code></pre>
+<pre><code>##                          .
+## (Intercept)     0.05797078
+## Exercise_angina 5.25349932
+## ST_depression   2.15364588
+## BP              1.00983828</code></pre>
+<pre class="r"><code>#Confusion Matrix
+prob &lt;- predict(logfit, type=&quot;response&quot;)
+table(truth=hrtdis1$hrtdisease,predict=as.numeric(prob&gt;.5))%&gt;%addmargins</code></pre>
+<pre><code>##      predict
+## truth   0   1 Sum
+##   0   123  27 150
+##   1    40  80 120
+##   Sum 163 107 270</code></pre>
+<pre class="r"><code>#Accuracy
+(123+80)/270</code></pre>
+<pre><code>## [1] 0.7518519</code></pre>
+<pre class="r"><code>#Sensitivity (TPR)
+80/120</code></pre>
+<pre><code>## [1] 0.6666667</code></pre>
+<pre class="r"><code>#Specificity (TNR)
+123/150</code></pre>
+<pre><code>## [1] 0.82</code></pre>
+<pre class="r"><code>#Recall/Precision (PPV)
+80/107</code></pre>
+<pre><code>## [1] 0.7476636</code></pre>
+<pre class="r"><code>#Density of log-odds plot
+hrtdis3 &lt;- hrtdis1
+hrtdis3$logit &lt;- predict(logfit)
+ggplot(hrtdis3, aes(logit, fill=HeartDisease)) + geom_density(alpha=0.3) + geom_vline(xintercept=0, lty=2)</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>#ROC curve and AUC
+hrtdis2 &lt;- hrtdis1%&gt;%mutate(probability=predict(logfit, type = &quot;response&quot;), prediction=ifelse(prob&gt;.5,1,0))
+
+classify&lt;-hrtdis2%&gt;%transmute(probability,prediction,truth=hrtdisease)
+
+ROCplot&lt;-ggplot(classify)+geom_roc(aes(d=truth,m=probability), n.cuts=0) + geom_segment(aes(x=0,y=0,xend=1,yend=1),lty=2)
+ROCplot</code></pre>
+<p><img src="/SDS348_Project2_files/figure-html/unnamed-chunk-8-2.png" width="672" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.7965278</code></pre>
+<pre class="r"><code>#10-fold CV
+set.seed(1234)
+k=10
+
+data&lt;-hrtdis1[sample(nrow(hrtdis1)),]
+folds&lt;-cut(seq(1:nrow(hrtdis1)),breaks=k,labels=F)
+
+diags&lt;-NULL
+for(i in 1:k){
+ train&lt;-data[folds!=i,]
+ test&lt;-data[folds==i,]
+ truth&lt;-test$hrtdisease
+ train_fit&lt;-glm(hrtdisease~Exercise_angina+ST_depression+BP, data=train,family=&quot;binomial&quot;)
+ probs&lt;-predict(train_fit,newdata = test,type=&quot;response&quot;)
+ diags&lt;-rbind(diags,class_diag(probs,truth))
+}
+
+apply(diags, 2, mean, na.rm = TRUE)</code></pre>
+<pre><code>##       acc      sens      spec       ppv       auc 
+## 0.7481481 0.6858974 0.8046375 0.7506261 0.7900096</code></pre>
+<p>The predicted odds of having heart disease when there is no exercise angina and when blood pressure and ST depression are 0 is 0.058. While holding BP and ST depression constant, having exercise angina multiplies the predicted odds of having heart disease by a factor of 5.25. While controlling for exercise angina and BP, increasing ST depression by 1 multiplies the predicted odds of having heart disease by a factor of 2.15. While controlling for exercise angina and ST depression, increasing BP by 1 multiplies the predicted odds of having heart disease by a factor of 1.01.
+The model correctly predicts 74.8% of the outcomes in the total data (this is the accuracy). The model correctly predicts 68.6% of cases as positive out of the total number of positives. The model correctly predicts 80.5% of cases as negative out of the total number of negatives. In the model, 75.1% of the predicted as positive cases are true positives.
+The AUC (0.797) indicates that the model is a fair predictor of new data (and distinguishing between the presence and absence of heart disease). The ROC curve is also decent and isn’t a straight line indicating that it is possible to distinguish between positive and negatives cases
+After performing the 10-fold CV the out-of-sample accuracy, sensitivity, and recall are 0.748, 0.686, and 0.751, respectively. The AUC is 0.797.</p>
+<pre class="r"><code>#LASSO regression
+
+lasfit &lt;- glm(hrtdisease ~ -1 + Exercise_angina + ST_depression + BP + Cholesterol + FBS_over_120 + Max_HR, data = hrtdis1, family = &quot;binomial&quot;)
+
+y&lt;-as.matrix(hrtdis1$hrtdisease)
+x&lt;-model.matrix(lasfit)
+x&lt;-scale(x)
+cv&lt;-cv.glmnet(x,y, family=&#39;binomial&#39;)
+lasso&lt;-glmnet(x,y,family=&quot;binomial&quot;,lambda=cv$lambda.1se)
+coef(cv)</code></pre>
+<pre><code>## 7 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                          1
+## (Intercept)     -0.2350293
+## Exercise_angina  0.3347993
+## ST_depression    0.3590219
+## BP               .        
+## Cholesterol      .        
+## FBS_over_120     .        
+## Max_HR          -0.2993305</code></pre>
+<pre class="r"><code>prob1 &lt;- predict(lasfit, type=&quot;response&quot;)
+
+class_diag(prob1, hrtdis1$hrtdisease)</code></pre>
+<pre><code>##         acc      sens spec       ppv       auc
+## 1 0.7703704 0.6833333 0.84 0.7735849 0.8226111</code></pre>
+<pre class="r"><code>#10-fold CV
+set.seed(1234)
+k=10
+
+data2&lt;-hrtdis1[sample(nrow(hrtdis1)),]
+folds2&lt;-cut(seq(1:nrow(hrtdis1)),breaks=k,labels=F)
+
+diags2&lt;-NULL
+for(i in 1:k){
+ train2&lt;-data2[folds!=i,]
+ test2&lt;-data2[folds==i,]
+ truth2&lt;-test2$hrtdisease
+ train_fit2&lt;-glm(hrtdisease~Exercise_angina+ST_depression+Max_HR, data=train2,family=&quot;binomial&quot;)
+ probs2&lt;-predict(train_fit2,newdata = test2,type=&quot;response&quot;)
+ diags2&lt;-rbind(diags2,class_diag(probs2,truth2))
+}
+
+apply(diags2, 2, mean, na.rm = TRUE)</code></pre>
+<pre><code>##       acc      sens      spec       ppv       auc 
+## 0.7629630 0.6890385 0.8384402 0.7634887 0.8221344</code></pre>
+<p>The variables that are retained from the LASSO regression are Exercise_angina, ST_depression, and Max_HR.
+The out-of-sample accuracy (0.763) for this 10-fold CV is greater than the one from part 5 (0.748). The AUC for this 10-fold CV (0.823) is a bit greater than the AUC from part 5 (0.797), showing that the usage of the significant variables from the LASSO can improve prediction.</p>
+</div>

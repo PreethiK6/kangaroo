@@ -1,7 +1,7 @@
 ---
-title: First Blog Post
-author: Preethi
-date: '2019-12-04'
+title: Shooting with Film
+author: Preethi Keerthipati
+date: '2019-12-09'
 slug: first-blog-post
 categories: []
 tags: []

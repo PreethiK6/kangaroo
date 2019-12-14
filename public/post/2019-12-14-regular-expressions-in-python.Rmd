@@ -1,0 +1,25 @@
+---
+title: Regular Expressions in Python
+author: Preethi Keerthipati
+date: '2019-12-14'
+slug: regular-expressions-in-python
+categories: []
+tags:
+  - regularexpression
+  - python
+description: ''
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+library(reticulate)
+```
+
+
+```{python}
+print("I am writing this in python except through R Studio!")
+
+x="stringInPython"
+x[0]
+```
+

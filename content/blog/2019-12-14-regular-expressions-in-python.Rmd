@@ -1,0 +1,42 @@
+---
+title: Regular Expressions in Python
+author: Preethi Keerthipati
+date: '2019-12-14'
+slug: regular-expressions-in-python
+categories: []
+tags:
+  - regularexpression
+  - python
+description: ''
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+library(reticulate)
+```
+
+Hello! This semester I've been taking a class in which I've learned a little bit of Python, and I'd like to share some of what I learned, particularly regular expressions! Regular expressions are a sequence of characters that allow you to find matches in text.
+
+```{python}
+import re
+
+x="abc aac ac acb bac 1a6"
+re.findall(r"a.",x)
+```
+
+In the code above "a." returns "a" and any character that follows the "a". The "." can be thought of as a wildcard and basically returns any character, letter or digit, following the "a".
+
+```{python}
+string1="We have to extract these numbers 12, 47, 48 The integers numbers are also interesting: 189 2036 314\',\' is a separator, so please extract these numbers 125,789,1450 and also these 564,90456 We like to offer you 7890$ per month in order to complete this task... we are joking"
+print(string1)
+
+re.findall(r"\d+",string1)
+```
+
+Here we are trying to extract all the numbers from string1. Using "\d" allows you to return all digits 0-9 and the "+" means 1 or more times. So together "\d+" returns all the numbers!
+
+Below is a chart of useful symbols you can use when writing regular expressions! 
+![](/blog/2019-12-14-regular-expressions-in-python_files/RegExChart.png)
+
+For more practice you can visit this website: http://play.inginf.units.it/#/level/1
+

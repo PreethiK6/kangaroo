@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>regularexpression on Preethi Keerthipati</title>
+    <link>/tags/regularexpression/</link>
+    <description>Recent content in regularexpression on Preethi Keerthipati</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Sat, 14 Dec 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/tags/regularexpression/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Regular Expressions in Python</title>
+      <link>/blog/regular-expressions-in-python/</link>
+      <pubDate>Sat, 14 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/regular-expressions-in-python/</guid>
+      <description>Hello! This semester I’ve been taking a class in which I’ve learned a little bit of Python, and I’d like to share some of what I learned, particularly regular expressions! Regular expressions are a sequence of characters that allow you to find matches in text.
+import rex=&amp;quot;abc aac ac acb bac 1a6&amp;quot;re.findall(r&amp;quot;a.&amp;quot;,x)## [&amp;#39;ab&amp;#39;, &amp;#39;aa&amp;#39;, &amp;#39;ac&amp;#39;, &amp;#39;ac&amp;#39;, &amp;#39;ac&amp;#39;, &amp;#39;a6&amp;#39;]In the code above “a.” returns “a” and any character that follows the “a”.</description>
+    </item>
+    
+  </channel>
+</rss>

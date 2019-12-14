@@ -8,6 +8,7 @@ tags: ["R Markdown", "plot", "regression"]
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE)
+library(reticulate)
 ```
 
 # R Markdown
@@ -16,10 +17,11 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-fit <- lm(dist ~ speed, data = cars)
-fit
+```{python}
+print("I am writing this in python except through R Studio!")
+
+x="stringInPython"
+x[0]
 ```
 
 # Including Plots

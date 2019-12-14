@@ -1,0 +1,472 @@
+---
+title: "Hate Crime Trends and Political Party Affiliation"
+author: "SDS348 Fall 2019"
+date: "October 15, 2019"
+output: html_document
+---
+
+
+
+<div id="r-markdown" class="section level2">
+<h2>R Markdown</h2>
+<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
+<p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+<pre class="r"><code>trump_og &lt;- read.csv(&quot;C:/Users/Preet/Desktop/SDS 348/Website2/content/Trump Approval.csv&quot;)
+hate_crimes &lt;- read.csv(&quot;C:/Users/Preet/Desktop/SDS 348/Website2/content/HateCrimes2.csv&quot;)
+hcpluspop &lt;- read.csv(&quot;C:/Users/Preet/Desktop/SDS 348/Website2/content/SumStatsHC.csv&quot;)
+
+library(dplyr)</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.3</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 3.5.3</code></pre>
+<pre class="r"><code>library(ggrepel)</code></pre>
+<pre><code>## Warning: package &#39;ggrepel&#39; was built under R version 3.5.3</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>## Warning: package &#39;tidyr&#39; was built under R version 3.5.3</code></pre>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;tidyverse&#39; was built under R version 3.5.3</code></pre>
+<pre><code>## -- Attaching packages ------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## v tibble  2.1.3     v purrr   0.3.2
+## v readr   1.3.1     v stringr 1.3.1
+## v tibble  2.1.3     v forcats 0.3.0</code></pre>
+<pre><code>## Warning: package &#39;tibble&#39; was built under R version 3.5.3</code></pre>
+<pre><code>## Warning: package &#39;readr&#39; was built under R version 3.5.3</code></pre>
+<pre><code>## Warning: package &#39;purrr&#39; was built under R version 3.5.3</code></pre>
+<pre><code>## -- Conflicts ---------------- tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<p>#####Introduction:
+#####The two datasets I have chosen for my project contain information about Trump’s approval rating for 50 U.S. states during 2017 and hate crimes that were committed throughout the U.S. The Trump approval dataset contains a variety of variables that give the percents of the population that approved and disapproved of Trump, as well as multiple statistics regarding party preferences of each state. This dataset was acquired from Gallup Polls. The hate crimes dataset records every incident that was reported to the police in each state from 1991 to 2017. It also contains variables that describe region, bias description, offender description, etc.; I got this dataset from the FBI Crime Data Explorer website.I’m interested in these datasets because of the current volatile political climate. Also becasue it feels like since Trump’s presidency, there has been an increase in intolerance toward different cultures and people. Some potential associations I would expect to find are states with higher Trump approval have higher incidences of hate crimes per capita. I also expect to find states that are more conservative to have higher crimes per capita.</p>
+<pre class="r"><code>#Both my datasets are already tidy so I&#39;m making one of them longer first by putting all the different variables into one column and then I&#39;m re-tidying the data by separating each variable into their own column by pivoting wider to show my use of the tidyr functions
+
+trump_og %&gt;% mutate(Total_Pop=gsub(pattern = &quot;,&quot;,&quot;&quot;,Total_Pop), Total_Pop=as.numeric(Total_Pop), Total_Pop=as.integer(Total_Pop)) -&gt; trump_og
+
+trump_og %&gt;% pivot_longer(3:12, names_to = &quot;variable&quot;, values_to= &quot;percents&quot;) -&gt; trump_long
+head(trump_long)</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##   STATE_NAME STATE_ABBR variable          percents
+##   &lt;fct&gt;      &lt;fct&gt;      &lt;chr&gt;                &lt;int&gt;
+## 1 Alabama    AL         Trump_Approval          53
+## 2 Alabama    AL         Trump_Disapproval       42
+## 3 Alabama    AL         Repub_Lean              50
+## 4 Alabama    AL         Demo_Lean               35
+## 5 Alabama    AL         Dem_Adv                -15
+## 6 Alabama    AL         Conservative            43</code></pre>
+<pre class="r"><code>trump_long %&gt;% pivot_wider(names_from = &quot;variable&quot;, values_from = &quot;percents&quot;) -&gt; trump_wide
+head(trump_wide)</code></pre>
+<pre><code>## # A tibble: 6 x 12
+##   STATE_NAME STATE_ABBR Trump_Approval Trump_Disapprov~ Repub_Lean Demo_Lean
+##   &lt;fct&gt;      &lt;fct&gt;               &lt;int&gt;            &lt;int&gt;      &lt;int&gt;     &lt;int&gt;
+## 1 Alabama    AL                     53               42         50        35
+## 2 Alaska     AK                     50               44         52        31
+## 3 Arizona    AZ                     41               53         42        40
+## 4 Arkansas   AR                     50               44         45        36
+## 5 California CA                     29               65         30        51
+## 6 Colorado   CO                     37               59         37        46
+## # ... with 6 more variables: Dem_Adv &lt;int&gt;, Conservative &lt;int&gt;, Moderate &lt;int&gt;,
+## #   Liberal &lt;int&gt;, Conser_Adv &lt;int&gt;, Total_Pop &lt;int&gt;</code></pre>
+<pre class="r"><code>#Created a new column that assigns each state a party preference based on majority party percentage.
+
+trump_app &lt;- trump_og %&gt;% mutate(
+  Party_Maj = case_when(
+    Conservative &gt; Moderate &amp; Conservative &gt; Liberal ~ &quot;conservative&quot;,
+    Moderate &gt; Conservative &amp; Moderate &gt; Liberal ~ &quot;moderate&quot;,
+    Liberal &gt; Conservative &amp; Liberal &gt; Moderate ~ &quot;liberal&quot;,
+    Repub_Lean &gt; Demo_Lean ~ &quot;conservative&quot;,
+    Demo_Lean &gt; Repub_Lean ~ &quot;liberal&quot;
+  )
+)
+
+head(trump_app)</code></pre>
+<pre><code>##   STATE_NAME STATE_ABBR Trump_Approval Trump_Disapproval Repub_Lean Demo_Lean
+## 1    Alabama         AL             53                42         50        35
+## 2     Alaska         AK             50                44         52        31
+## 3    Arizona         AZ             41                53         42        40
+## 4   Arkansas         AR             50                44         45        36
+## 5 California         CA             29                65         30        51
+## 6   Colorado         CO             37                59         37        46
+##   Dem_Adv Conservative Moderate Liberal Conser_Adv Total_Pop    Party_Maj
+## 1     -15           43       34      16         27   4874747 conservative
+## 2     -21           36       42      17         19    739795     moderate
+## 3      -2           33       37      23         10   7016270     moderate
+## 4      -9           42       35      17         25   3004279 conservative
+## 5      21           27       37      30         -3  39536653     moderate
+## 6       9           30       37      28          2   5607154     moderate</code></pre>
+<pre class="r"><code>#This is the originial dataset with statistics from 1991 to 2017.
+head(hate_crimes)</code></pre>
+<pre><code>##   DATA_YEAR STATE_ABBR STATE_NAME      DIVISION_NAME REGION_NAME
+## 1      1991         AR   Arkansas West South Central       South
+## 2      1991         AR   Arkansas West South Central       South
+## 3      1991         AR   Arkansas West South Central       South
+## 4      1991         AR   Arkansas West South Central       South
+## 5      1991         AR   Arkansas West South Central       South
+## 6      1991         AR   Arkansas West South Central       South
+##            POPULATION_GROUP_DESC TOTAL_OFFENDER_COUNT             OFFENDER_RACE
+## 1 Cities from 10,000 thru 24,999                    1                     White
+## 2   Cities from 2,500 thru 9,999                    1 Black or African American
+## 3 Cities from 50,000 thru 99,000                    1 Black or African American
+## 4 Cities from 50,000 thru 99,000                    1 Black or African American
+## 5 Cities from 50,000 thru 99,000                    1 Black or African American
+## 6 Cities from 50,000 thru 99,000                    1 Black or African American
+##   VICTIM_COUNT                                                OFFENSE_NAME
+## 1            1                                                Intimidation
+## 2            1                                              Simple Assault
+## 3            1                                          Aggravated Assault
+## 4            2 Aggravated Assault;Destruction/Damage/Vandalism of Property
+## 5            1                                          Aggravated Assault
+## 6            1                                                     Robbery
+##   TOTAL_INDIVIDUAL_VICTIMS                      LOCATION_NAME
+## 1                        1 Highway/Road/Alley/Street/Sidewalk
+## 2                        1 Highway/Road/Alley/Street/Sidewalk
+## 3                        1                     Residence/Home
+## 4                        1 Highway/Road/Alley/Street/Sidewalk
+## 5                        1                Service/Gas Station
+## 6                        1                Grocery/Supermarket
+##                        BIAS_DESC VICTIM_TYPES
+## 1 Anti-Black or African American   Individual
+## 2                     Anti-White   Individual
+## 3 Anti-Black or African American   Individual
+## 4                     Anti-White   Individual
+## 5                     Anti-White   Individual
+## 6                     Anti-White   Individual</code></pre>
+<pre class="r"><code>#This dataset contains the total number of hate crimes committed per state in the year 2017, and will be merged with the trump approval dataset.
+
+hate_crimes %&gt;% select(DATA_YEAR, STATE_ABBR, STATE_NAME, OFFENDER_RACE, BIAS_DESC) %&gt;% filter(DATA_YEAR == &#39;2017&#39;) %&gt;% group_by(STATE_NAME) %&gt;% summarise(total_crimes = n()) %&gt;% arrange(desc(total_crimes)) -&gt; total_hc
+head(total_hc)</code></pre>
+<pre><code>## # A tibble: 6 x 2
+##   STATE_NAME    total_crimes
+##   &lt;fct&gt;                &lt;int&gt;
+## 1 California            1094
+## 2 New York               554
+## 3 Washington             511
+## 4 New Jersey             499
+## 5 Michigan               457
+## 6 Massachusetts          434</code></pre>
+<pre class="r"><code>#The dataset below includes the total hate crimes in committed in each state plus the other variables.
+
+hate_crimes %&gt;% select(DATA_YEAR, STATE_ABBR, STATE_NAME, OFFENDER_RACE, BIAS_DESC) %&gt;% filter(DATA_YEAR == &#39;2017&#39;) %&gt;% group_by(STATE_NAME) %&gt;% mutate(total_crimes = n()) %&gt;% arrange(desc(total_crimes)) -&gt; hate_crimes2
+head(hate_crimes2)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+## # Groups:   STATE_NAME [1]
+##   DATA_YEAR STATE_ABBR STATE_NAME OFFENDER_RACE BIAS_DESC           total_crimes
+##       &lt;int&gt; &lt;fct&gt;      &lt;fct&gt;      &lt;fct&gt;         &lt;fct&gt;                      &lt;int&gt;
+## 1      2017 CA         California Multiple      Anti-Sexual Orient~         1094
+## 2      2017 CA         California Unknown       Anti-Black                  1094
+## 3      2017 CA         California Unknown       Anti-Black                  1094
+## 4      2017 CA         California Multiple      Anti-Black                  1094
+## 5      2017 CA         California White         Anti-Islamic                1094
+## 6      2017 CA         California White         Anti-Jewish                 1094</code></pre>
+<pre class="r"><code>#This gives the proportion of the bias of hate crime committed in relation to the total hate crimes per state.
+
+hate_crimes %&gt;% filter(DATA_YEAR == &#39;2017&#39;) %&gt;% group_by(STATE_NAME,BIAS_DESC) %&gt;% summarize(n=n())%&gt;%mutate(prop=n/sum(n))%&gt;% pivot_wider(-n,names_from = BIAS_DESC, values_from = prop) -&gt; prop_bias
+
+head(prop_bias)</code></pre>
+<pre><code>## # A tibble: 6 x 12
+## # Groups:   STATE_NAME [52]
+##   STATE_NAME `Anti-Black` `Anti-Hispanic/~ `Anti-Islamic` `Anti-White`
+##   &lt;fct&gt;             &lt;dbl&gt;            &lt;dbl&gt;          &lt;dbl&gt;        &lt;dbl&gt;
+## 1 Alabama           0.6              0.2           0.1          0.1   
+## 2 Alaska           NA               NA            NA            0.5   
+## 3 Arizona           0.326            0.102         0.0114       0.0909
+## 4 Arkansas          0.538           NA             0.0385       0.231 
+## 5 California        0.277            0.115         0.0558       0.0430
+## 6 Colorado          0.195            0.184         0.0690       0.0920
+## # ... with 7 more variables: `Anti-Christian` &lt;dbl&gt;, `Anti-Multiple
+## #   Races` &lt;dbl&gt;, `Anti-Asian` &lt;dbl&gt;, `Anti-Disability` &lt;dbl&gt;,
+## #   `Anti-Jewish` &lt;dbl&gt;, `Anti-Multiple Religions` &lt;dbl&gt;, `Anti-Sexual
+## #   Orientation/Identity` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>glimpse(prop_bias)</code></pre>
+<pre><code>## Observations: 51
+## Variables: 12
+## Groups: STATE_NAME [52]
+## $ STATE_NAME                         &lt;fct&gt; Alabama, Alaska, Arizona, Arkans...
+## $ `Anti-Black`                       &lt;dbl&gt; 0.60000000, NA, 0.32575758, 0.53...
+## $ `Anti-Hispanic/Latino`             &lt;dbl&gt; 0.20000000, NA, 0.10227273, NA, ...
+## $ `Anti-Islamic`                     &lt;dbl&gt; 0.10000000, NA, 0.01136364, 0.03...
+## $ `Anti-White`                       &lt;dbl&gt; 0.10000000, 0.50000000, 0.090909...
+## $ `Anti-Christian`                   &lt;dbl&gt; NA, 0.250000000, 0.003787879, NA...
+## $ `Anti-Multiple Races`              &lt;dbl&gt; NA, 0.25000000, 0.06060606, 0.03...
+## $ `Anti-Asian`                       &lt;dbl&gt; NA, NA, 0.007575758, NA, 0.03382...
+## $ `Anti-Disability`                  &lt;dbl&gt; NA, NA, 0.018939394, 0.038461538...
+## $ `Anti-Jewish`                      &lt;dbl&gt; NA, NA, 0.12878788, NA, 0.095063...
+## $ `Anti-Multiple Religions`          &lt;dbl&gt; NA, NA, 0.02272727, NA, 0.022851...
+## $ `Anti-Sexual Orientation/Identity` &lt;dbl&gt; NA, NA, 0.22727273, 0.11538462, ...</code></pre>
+<pre class="r"><code>#Creating summary statistics for hate crimes by region, offender race, bias description, and offense name.
+
+hcpluspop %&gt;% mutate(TOT_POP=gsub(pattern = &quot;,&quot;,&quot;&quot;,TOT_POP), TOT_POP=as.numeric(TOT_POP), TOT_POP=as.integer(TOT_POP)) -&gt; hcpluspop
+
+hcpluspop %&gt;% select(STATE_NAME, OFFENDER_RACE, BIAS_DESC, REGION_NAME, OFFENSE_NAME, TOT_POP)%&gt;% group_by(BIAS_DESC) %&gt;% summarize(n=n())%&gt;%mutate(prop_tc_bias=n/sum(n))</code></pre>
+<pre><code>## # A tibble: 11 x 3
+##    BIAS_DESC                            n prop_tc_bias
+##    &lt;fct&gt;                            &lt;int&gt;        &lt;dbl&gt;
+##  1 Anti-Asian                         129       0.0181
+##  2 Anti-Black                        2061       0.289 
+##  3 Anti-Christian                     170       0.0238
+##  4 Anti-Disability                    151       0.0211
+##  5 Anti-Hispanic/Latino               422       0.0591
+##  6 Anti-Islamic                       377       0.0528
+##  7 Anti-Jewish                        952       0.133 
+##  8 Anti-Multiple Races                711       0.0995
+##  9 Anti-Multiple Religions            198       0.0277
+## 10 Anti-Sexual Orientation/Identity  1259       0.176 
+## 11 Anti-White                         713       0.0998</code></pre>
+<pre class="r"><code>hcpluspop %&gt;% select(STATE_NAME, OFFENDER_RACE, BIAS_DESC, REGION_NAME, OFFENSE_NAME, TOT_POP)%&gt;% group_by(OFFENSE_NAME) %&gt;% summarize(n=n())%&gt;%mutate(prop_tc_off_name=n/sum(n))</code></pre>
+<pre><code>## # A tibble: 104 x 3
+##    OFFENSE_NAME                                               n prop_tc_off_name
+##    &lt;fct&gt;                                                  &lt;int&gt;            &lt;dbl&gt;
+##  1 Aggravated Assault                                       708         0.0991  
+##  2 Aggravated Assault;Arson                                   1         0.000140
+##  3 Aggravated Assault;Burglary/Breaking &amp; Entering            2         0.000280
+##  4 Aggravated Assault;Burglary/Breaking &amp; Entering;Destr~     1         0.000140
+##  5 Aggravated Assault;Destruction/Damage/Vandalism of Pr~    18         0.00252 
+##  6 Aggravated Assault;Destruction/Damage/Vandalism of Pr~     3         0.000420
+##  7 Aggravated Assault;Destruction/Damage/Vandalism of Pr~     1         0.000140
+##  8 Aggravated Assault;Intimidation                           12         0.00168 
+##  9 Aggravated Assault;Larceny-theft                           2         0.000280
+## 10 Aggravated Assault;Murder and Nonnegligent Manslaught~     1         0.000140
+## # ... with 94 more rows</code></pre>
+<pre class="r"><code>hcpluspop %&gt;% select(STATE_NAME, OFFENDER_RACE, BIAS_DESC, REGION_NAME, OFFENSE_NAME, TOT_POP)%&gt;% group_by(OFFENDER_RACE) %&gt;% summarize(n=n())%&gt;%mutate(prop_tc_off_race=n/sum(n))</code></pre>
+<pre><code>## # A tibble: 8 x 3
+##   OFFENDER_RACE                                 n prop_tc_off_race
+##   &lt;fct&gt;                                     &lt;int&gt;            &lt;dbl&gt;
+## 1 &quot;&quot;                                            5         0.000700
+## 2 American Indian or Alaska Native             44         0.00616 
+## 3 Asian                                        40         0.00560 
+## 4 Black or African American                   976         0.137   
+## 5 Multiple                                    204         0.0286  
+## 6 Native Hawaiian or Other Pacific Islander     3         0.000420
+## 7 Unknown                                    3210         0.449   
+## 8 White                                      2661         0.373</code></pre>
+<pre class="r"><code>hcpluspop %&gt;% select(STATE_NAME, OFFENDER_RACE, BIAS_DESC, REGION_NAME, OFFENSE_NAME, TOT_POP)%&gt;% group_by(REGION_NAME)%&gt;% summarize(n=n())%&gt;%mutate(prop_tc_reg=n/sum(n))</code></pre>
+<pre><code>## # A tibble: 4 x 3
+##   REGION_NAME     n prop_tc_reg
+##   &lt;fct&gt;       &lt;int&gt;       &lt;dbl&gt;
+## 1 Midwest      1487       0.208
+## 2 Northeast    1770       0.248
+## 3 South        1638       0.229
+## 4 West         2248       0.315</code></pre>
+<pre class="r"><code>#I&#39;m using inner_join() because I want to keep all the rows that have a match in both datasets. The District of Columbia was included in the hate crimes dataset, but not the trump approval dataset, so I got rid of the row that included it. The only problem with this is that District of Columbia will not be included for analysis. 
+
+inner_join(trump_app,total_hc, by = &quot;STATE_NAME&quot;) -&gt; no_bias_prop</code></pre>
+<pre><code>## Warning: Column `STATE_NAME` joining factors with different levels, coercing to
+## character vector</code></pre>
+<pre class="r"><code>head(no_bias_prop)</code></pre>
+<pre><code>##   STATE_NAME STATE_ABBR Trump_Approval Trump_Disapproval Repub_Lean Demo_Lean
+## 1    Alabama         AL             53                42         50        35
+## 2     Alaska         AK             50                44         52        31
+## 3    Arizona         AZ             41                53         42        40
+## 4   Arkansas         AR             50                44         45        36
+## 5 California         CA             29                65         30        51
+## 6   Colorado         CO             37                59         37        46
+##   Dem_Adv Conservative Moderate Liberal Conser_Adv Total_Pop    Party_Maj
+## 1     -15           43       34      16         27   4874747 conservative
+## 2     -21           36       42      17         19    739795     moderate
+## 3      -2           33       37      23         10   7016270     moderate
+## 4      -9           42       35      17         25   3004279 conservative
+## 5      21           27       37      30         -3  39536653     moderate
+## 6       9           30       37      28          2   5607154     moderate
+##   total_crimes
+## 1           10
+## 2            4
+## 3          264
+## 4           26
+## 5         1094
+## 6           87</code></pre>
+<pre class="r"><code>#I&#39;m using inner_join() on both no_bias_prop and prop_bias so that I can keep all the matching rows and variables from both datasets and drop the District of Columbia row.
+
+inner_join(no_bias_prop, prop_bias, by = &quot;STATE_NAME&quot;) -&gt; comb_data2</code></pre>
+<pre><code>## Warning: Column `STATE_NAME` joining character vector and factor, coercing into
+## character vector</code></pre>
+<pre class="r"><code>head(comb_data2)</code></pre>
+<pre><code>##   STATE_NAME STATE_ABBR Trump_Approval Trump_Disapproval Repub_Lean Demo_Lean
+## 1    Alabama         AL             53                42         50        35
+## 2     Alaska         AK             50                44         52        31
+## 3    Arizona         AZ             41                53         42        40
+## 4   Arkansas         AR             50                44         45        36
+## 5 California         CA             29                65         30        51
+## 6   Colorado         CO             37                59         37        46
+##   Dem_Adv Conservative Moderate Liberal Conser_Adv Total_Pop    Party_Maj
+## 1     -15           43       34      16         27   4874747 conservative
+## 2     -21           36       42      17         19    739795     moderate
+## 3      -2           33       37      23         10   7016270     moderate
+## 4      -9           42       35      17         25   3004279 conservative
+## 5      21           27       37      30         -3  39536653     moderate
+## 6       9           30       37      28          2   5607154     moderate
+##   total_crimes Anti-Black Anti-Hispanic/Latino Anti-Islamic Anti-White
+## 1           10  0.6000000            0.2000000   0.10000000 0.10000000
+## 2            4         NA                   NA           NA 0.50000000
+## 3          264  0.3257576            0.1022727   0.01136364 0.09090909
+## 4           26  0.5384615                   NA   0.03846154 0.23076923
+## 5         1094  0.2769653            0.1151737   0.05575868 0.04296161
+## 6           87  0.1954023            0.1839080   0.06896552 0.09195402
+##   Anti-Christian Anti-Multiple Races  Anti-Asian Anti-Disability Anti-Jewish
+## 1             NA                  NA          NA              NA          NA
+## 2    0.250000000          0.25000000          NA              NA          NA
+## 3    0.003787879          0.06060606 0.007575758     0.018939394  0.12878788
+## 4             NA          0.03846154          NA     0.038461538          NA
+## 5    0.029250457          0.06855576 0.033820841     0.003656307  0.09506399
+## 6    0.011494253          0.03448276 0.011494253              NA  0.14942529
+##   Anti-Multiple Religions Anti-Sexual Orientation/Identity
+## 1                      NA                               NA
+## 2                      NA                               NA
+## 3              0.02272727                        0.2272727
+## 4                      NA                        0.1153846
+## 5              0.02285192                        0.2559415
+## 6              0.05747126                        0.1954023</code></pre>
+<pre class="r"><code>#Creating the hate crime per capita variable column
+
+comb_data2 %&gt;% mutate(hc_per_capita= total_crimes/Total_Pop) -&gt; comb_data
+
+head(comb_data)</code></pre>
+<pre><code>##   STATE_NAME STATE_ABBR Trump_Approval Trump_Disapproval Repub_Lean Demo_Lean
+## 1    Alabama         AL             53                42         50        35
+## 2     Alaska         AK             50                44         52        31
+## 3    Arizona         AZ             41                53         42        40
+## 4   Arkansas         AR             50                44         45        36
+## 5 California         CA             29                65         30        51
+## 6   Colorado         CO             37                59         37        46
+##   Dem_Adv Conservative Moderate Liberal Conser_Adv Total_Pop    Party_Maj
+## 1     -15           43       34      16         27   4874747 conservative
+## 2     -21           36       42      17         19    739795     moderate
+## 3      -2           33       37      23         10   7016270     moderate
+## 4      -9           42       35      17         25   3004279 conservative
+## 5      21           27       37      30         -3  39536653     moderate
+## 6       9           30       37      28          2   5607154     moderate
+##   total_crimes Anti-Black Anti-Hispanic/Latino Anti-Islamic Anti-White
+## 1           10  0.6000000            0.2000000   0.10000000 0.10000000
+## 2            4         NA                   NA           NA 0.50000000
+## 3          264  0.3257576            0.1022727   0.01136364 0.09090909
+## 4           26  0.5384615                   NA   0.03846154 0.23076923
+## 5         1094  0.2769653            0.1151737   0.05575868 0.04296161
+## 6           87  0.1954023            0.1839080   0.06896552 0.09195402
+##   Anti-Christian Anti-Multiple Races  Anti-Asian Anti-Disability Anti-Jewish
+## 1             NA                  NA          NA              NA          NA
+## 2    0.250000000          0.25000000          NA              NA          NA
+## 3    0.003787879          0.06060606 0.007575758     0.018939394  0.12878788
+## 4             NA          0.03846154          NA     0.038461538          NA
+## 5    0.029250457          0.06855576 0.033820841     0.003656307  0.09506399
+## 6    0.011494253          0.03448276 0.011494253              NA  0.14942529
+##   Anti-Multiple Religions Anti-Sexual Orientation/Identity hc_per_capita
+## 1                      NA                               NA  2.051389e-06
+## 2                      NA                               NA  5.406903e-06
+## 3              0.02272727                        0.2272727  3.762683e-05
+## 4                      NA                        0.1153846  8.654323e-06
+## 5              0.02285192                        0.2559415  2.767053e-05
+## 6              0.05747126                        0.1954023  1.551589e-05</code></pre>
+<p>#####My first plot is a scatterplot between trump approval rating and total hates crimes per capita between the 50 states in the combined dataset. There isn’t a clear association between Trump approval and hate crimes as I had expected. It seems that the number of hate crimes committed per capita for each state seem to stay around the same value regardless of the states approval rating for Trump. There are a couple outliers one being Kentucky, which has the largest per capita hate crimes committed as well as a fairly high Trump approval rate. It would be interesting to compare the increase/decrease of hates crimes during Obama’s presidential term compared to Trump’s.</p>
+<pre class="r"><code>ggplot(data = comb_data, aes(x = Trump_Approval, y = hc_per_capita)) + geom_point() + scale_x_continuous(breaks = seq(0,80,by = 5)) + ggtitle(&quot;Trump Approval and Hate Crimes Per Capita in 2017&quot;) + geom_text_repel(aes(x=Trump_Approval,y=hc_per_capita,label=STATE_ABBR), size = 3) + labs(y=&quot;Hate Crimes per Capita&quot;, x = &quot;Trump Approval (%)&quot;) + theme(legend.position = &quot;none&quot;) </code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>#####My second plot is a barplot that shows the mean hate crime per capita committed within each political party group. The moderate party group means that the members of the group are more centrist than liberal or conservative. The bar plot shows that more hate crimes were committed in states that are liberal or moderate than conservative, which is not what I expected. But it makes sense because a lot of the more populous big city states like California and New York, which are more liberal, have more crime. Overall, you can’t draw any significant evidence from the bar plot because the standard error bars overlap.</p>
+<pre class="r"><code>ggplot(comb_data, aes(x=Party_Maj,y=hc_per_capita,fill=Party_Maj))+ scale_fill_brewer(palette = &quot;Dark2&quot;) + geom_bar(stat = &quot;summary&quot;)+ geom_errorbar(stat = &quot;summary&quot;,width=.2) + theme(legend.position = &quot;none&quot;) + ggtitle(&quot;Hate Crimes in Relation to Party Preference&quot;) + labs(y=&quot;Hate Crimes per Capita&quot;, x = &quot;Political Parties&quot;)</code></pre>
+<pre><code>## No summary function supplied, defaulting to `mean_se()
+## No summary function supplied, defaulting to `mean_se()</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>#####There is a strong positive correlation between Trump approval and Republican lean as well as being conservative. There is a strong positive correlation between Trump disapproval and Democratic lean as well as being liberal.</p>
+<pre class="r"><code>comb_data %&gt;% select(-c(STATE_ABBR, STATE_NAME, 12:26)) %&gt;% cor() </code></pre>
+<pre><code>##                   Trump_Approval Trump_Disapproval Repub_Lean   Demo_Lean
+## Trump_Approval        1.00000000       -0.98841320  0.9266826 -0.89417456
+## Trump_Disapproval    -0.98841320        1.00000000 -0.9162813  0.90758219
+## Repub_Lean            0.92668260       -0.91628130  1.0000000 -0.96120346
+## Demo_Lean            -0.89417456        0.90758219 -0.9612035  1.00000000
+## Dem_Adv              -0.92025962        0.92117316 -0.9900861  0.99015737
+## Conservative          0.90922363       -0.91457055  0.9211718 -0.88697840
+## Moderate             -0.07434542        0.05794765 -0.1120996  0.02746267
+## Liberal              -0.86731988        0.90198996 -0.8427481  0.87333750
+## Conser_Adv            0.91331078       -0.93362921  0.9075863 -0.90459912
+##                       Dem_Adv Conservative    Moderate    Liberal Conser_Adv
+## Trump_Approval    -0.92025962    0.9092236 -0.07434542 -0.8673199  0.9133108
+## Trump_Disapproval  0.92117316   -0.9145705  0.05794765  0.9019900 -0.9336292
+## Repub_Lean        -0.99008605    0.9211718 -0.11209958 -0.8427481  0.9075863
+## Demo_Lean          0.99015737   -0.8869784  0.02746267  0.8733375 -0.9045991
+## Dem_Adv            1.00000000   -0.9121683  0.06902803  0.8656239 -0.9141725
+## Conservative      -0.91216832    1.0000000 -0.29712580 -0.8931928  0.9744140
+## Moderate           0.06902803   -0.2971258  1.00000000 -0.1101532 -0.1025032
+## Liberal            0.86562390   -0.8931928 -0.11015317  1.0000000 -0.9712552
+## Conser_Adv        -0.91417246    0.9744140 -0.10250323 -0.9712552  1.0000000</code></pre>
+<p>#####We see that PC1 alone explains 82.66% of the variance and having both PC1 and PC2 explains 94.69% of the variance.</p>
+<pre class="r"><code>comb_data %&gt;% select(-c(STATE_ABBR, STATE_NAME, 12:26))%&gt;% scale() %&gt;% prcomp() -&gt; comb_pca
+
+comb_pca</code></pre>
+<pre><code>## Standard deviations (1, .., p=9):
+## [1] 2.727599875 1.040213507 0.510609684 0.405484151 0.203879349 0.085701139
+## [7] 0.062072526 0.012639664 0.009534181
+## 
+## Rotation (n x k) = (9 x 9):
+##                           PC1          PC2         PC3         PC4         PC5
+## Trump_Approval    -0.35278403  0.014013136 -0.02982961 -0.65638717 0.109480459
+## Trump_Disapproval  0.35571823 -0.035065507 -0.07395062  0.54408192 0.337781586
+## Repub_Lean        -0.35522862 -0.025844088 -0.40975495  0.09110250 0.576100157
+## Demo_Lean          0.35250113 -0.063380914  0.39287046 -0.30789280 0.594292151
+## Dem_Adv            0.35727058 -0.020239874  0.40909124 -0.19371577 0.008911653
+## Conservative      -0.35344060 -0.199125351  0.25471492  0.14334765 0.344100852
+## Moderate           0.03493819  0.956062367 -0.03315368 -0.01593717 0.174787662
+## Liberal            0.34199743 -0.199337164 -0.52818697 -0.26213264 0.175365521
+## Conser_Adv        -0.35751658 -0.006154028  0.39884735  0.20734331 0.095154988
+##                           PC6         PC7          PC8          PC9
+## Trump_Approval    -0.42397708 -0.50084866  0.024989822 -0.019918212
+## Trump_Disapproval -0.43927412 -0.51285618  0.018851912 -0.017495751
+## Repub_Lean         0.44980024 -0.07699678  0.380601074 -0.109309681
+## Demo_Lean          0.30153773 -0.02054168 -0.400932513  0.131543312
+## Dem_Adv           -0.02691543  0.05047368  0.777765648 -0.242478416
+## Conservative      -0.45802467  0.49394441  0.131922591  0.400529589
+## Moderate          -0.14015268  0.18210242  0.002703512 -0.002968497
+## Liberal           -0.31682858  0.44496550 -0.113767346 -0.391837648
+## Conser_Adv        -0.05917997  0.04576499 -0.241128111 -0.772838680</code></pre>
+<pre class="r"><code>summary(comb_pca)</code></pre>
+<pre><code>## Importance of components:
+##                           PC1    PC2     PC3     PC4     PC5     PC6     PC7
+## Standard deviation     2.7276 1.0402 0.51061 0.40548 0.20388 0.08570 0.06207
+## Proportion of Variance 0.8266 0.1202 0.02897 0.01827 0.00462 0.00082 0.00043
+## Cumulative Proportion  0.8266 0.9469 0.97584 0.99411 0.99873 0.99954 0.99997
+##                            PC8      PC9
+## Standard deviation     0.01264 0.009534
+## Proportion of Variance 0.00002 0.000010
+## Cumulative Proportion  0.99999 1.000000</code></pre>
+<pre class="r"><code>comb_data %&gt;% select(-c(STATE_ABBR, STATE_NAME, 12:26)) %&gt;% cor() %&gt;% eigen()</code></pre>
+<pre><code>## eigen() decomposition
+## $values
+## [1] 7.439801e+00 1.082044e+00 2.607222e-01 1.644174e-01 4.156679e-02
+## [6] 7.344685e-03 3.852999e-03 1.597611e-04 9.090061e-05
+## 
+## $vectors
+##              [,1]         [,2]        [,3]        [,4]         [,5]        [,6]
+##  [1,]  0.35278403  0.014013136 -0.02982961  0.65638717 -0.109480459  0.42397708
+##  [2,] -0.35571823 -0.035065507 -0.07395062 -0.54408192 -0.337781586  0.43927412
+##  [3,]  0.35522862 -0.025844088 -0.40975495 -0.09110250 -0.576100157 -0.44980024
+##  [4,] -0.35250113 -0.063380914  0.39287046  0.30789280 -0.594292151 -0.30153773
+##  [5,] -0.35727058 -0.020239874  0.40909124  0.19371577 -0.008911653  0.02691543
+##  [6,]  0.35344060 -0.199125351  0.25471492 -0.14334765 -0.344100852  0.45802467
+##  [7,] -0.03493819  0.956062367 -0.03315368  0.01593717 -0.174787662  0.14015268
+##  [8,] -0.34199743 -0.199337164 -0.52818697  0.26213264 -0.175365521  0.31682858
+##  [9,]  0.35751658 -0.006154028  0.39884735 -0.20734331 -0.095154988  0.05917997
+##              [,7]         [,8]         [,9]
+##  [1,] -0.50084866 -0.024989822 -0.019918212
+##  [2,] -0.51285618 -0.018851912 -0.017495751
+##  [3,] -0.07699678 -0.380601074 -0.109309681
+##  [4,] -0.02054168  0.400932513  0.131543312
+##  [5,]  0.05047368 -0.777765648 -0.242478416
+##  [6,]  0.49394441 -0.131922591  0.400529589
+##  [7,]  0.18210242 -0.002703512 -0.002968497
+##  [8,]  0.44496550  0.113767346 -0.391837648
+##  [9,]  0.04576499  0.241128111 -0.772838680</code></pre>
+<p>#####According to the plot PC1 does a good job explaining all the other variables except for Moderate, which is explained by PC2. The arrows with the smaller angles between them are more higly correlated like being liberal and Trump disapproval, which was mentioned earlier.</p>
+<pre class="r"><code>comb_pca$rotation[,1:2]%&gt;%as.data.frame%&gt;%rownames_to_column%&gt;%ggplot()+geom_hline(aes(yintercept=0),lty=2)+ geom_vline(aes(xintercept=0),lty=2)+ylab(&quot;PC2&quot;)+xlab(&quot;PC1&quot;)+
+geom_segment(aes(x=0,y=0,xend=PC1,yend=PC2),arrow=arrow(),col=&quot;red&quot;)+
+geom_label(aes(x=PC1*1.1,y=PC2*1.1,label=rowname))</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<pre class="r"><code>data(comb_data)</code></pre>
+<pre><code>## Warning in data(comb_data): data set &#39;comb_data&#39; not found</code></pre>
+<pre class="r"><code>comb_data&lt;-comb_data 
+
+
+comb_pca$x%&gt;%as.data.frame%&gt;%mutate(State=comb_data$STATE_NAME)%&gt;%ggplot(aes(PC1,PC2))+geom_point()</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+</div>
